@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using General;
 using UnityEngine;
 using UnityEngine.Events;
@@ -30,8 +31,25 @@ public class NetWorkManager : SingletonMono<NetWorkManager>
 
     private void Start()
     {
+        EnableThread();
+        
         cmdEvents.Add("login0",new UnityEvent()); //登录成功
         cmdEvents.Add("login1",new UnityEvent()); //登录失败
+        
+        cmdEvents.Add("bet0", new UnityEvent()); //下注成功
+        cmdEvents.Add("bet1", new UnityEvent()); //下注失败
+        cmdEvents.Add("start_sendcard0", new UnityEvent()); //开始发牌
+        cmdEvents.Add("start_sendcard1", new UnityEvent()); //发牌失败
+        cmdEvents.Add("hit0", new UnityEvent()); //抽牌
+        cmdEvents.Add("hit0", new UnityEvent());
+        cmdEvents.Add("stand", new UnityEvent());
+        cmdEvents.Add("restart_game", new UnityEvent());
+        cmdEvents.Add("leave", new UnityEvent());
+        
+        // 广播消息
+        cmdEvents.Add("update_player_info", new UnityEvent());
+        cmdEvents.Add("result", new UnityEvent());
+        cmdEvents.Add("game_restart", new UnityEvent());
     }
 
     /// <summary>
@@ -96,6 +114,7 @@ public class NetWorkManager : SingletonMono<NetWorkManager>
         //login,0,登陆成功
         //login,1,登陆失败(password error\)
         var splitMsg = msg.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Debug.Log(msg);
         foreach (var m in splitMsg)
         {
             var splitM = m.Split(",", StringSplitOptions.RemoveEmptyEntries);
@@ -110,7 +129,7 @@ public class NetWorkManager : SingletonMono<NetWorkManager>
             }
         }
     }
-
+    
     /// <summary>
     /// 接收服务器信息
     /// </summary>
@@ -150,6 +169,88 @@ public class NetWorkManager : SingletonMono<NetWorkManager>
         else
         {
             cmdEvents[cmd].RemoveListener(cmdEvt);
+        }
+    }
+    
+     // 新增游戏命令事件
+    private Dictionary<string, UnityEvent<string[]>> gameCmdEvents = new();
+
+    // 初始化游戏命令
+    private void InitGameCommands()
+    {
+        gameCmdEvents.Add("enter", new UnityEvent<string[]>());
+        gameCmdEvents.Add("bet", new UnityEvent<string[]>());
+        gameCmdEvents.Add("start_sendcard", new UnityEvent<string[]>());
+        gameCmdEvents.Add("hit", new UnityEvent<string[]>());
+        gameCmdEvents.Add("stand", new UnityEvent<string[]>());
+        gameCmdEvents.Add("restart_game", new UnityEvent<string[]>());
+        gameCmdEvents.Add("leave", new UnityEvent<string[]>());
+        
+        // 广播消息
+        gameCmdEvents.Add("update_player_info", new UnityEvent<string[]>());
+        gameCmdEvents.Add("result", new UnityEvent<string[]>());
+        gameCmdEvents.Add("game_restart", new UnityEvent<string[]>());
+    }
+
+    // 发送游戏命令
+    public void SendGameCommand(string command, params object[] args)
+    {
+        if (socket == null || !socket.Connected)
+        {
+            Debug.LogError("未连接到服务器");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder(command);
+        foreach (var arg in args)
+        {
+            sb.Append(",");
+            sb.Append(arg.ToString());
+        }
+        sb.Append("\r\n");
+
+        byte[] data = Encoding.UTF8.GetBytes(sb.ToString());
+        socket.Send(data);
+        Debug.Log($"发送命令: {sb}");
+    }
+
+    // 注册/注销游戏命令处理器
+    public void RegisterGameHandler(string cmd, UnityAction<string[]> action)
+    {
+        if (gameCmdEvents.TryGetValue(cmd, out var handler))
+        {
+            handler.AddListener(action);
+        }
+    }
+
+    public void UnregisterGameHandler(string cmd, UnityAction<string[]> action)
+    {
+        if (gameCmdEvents.TryGetValue(cmd, out var handler))
+        {
+            handler.RemoveListener(action);
+        }
+    }
+    
+    Thread thread_GlobalInfo;
+
+    //开启线程
+    void EnableThread()
+    {
+        //首先要创建一个线程
+        thread_GlobalInfo = new Thread(ReceiveInfo);
+
+        //然后调用Start函数启动该线程
+        thread_GlobalInfo.Start();
+    }
+
+    /// <summary>
+    /// 每帧监听消息
+    /// </summary>
+    void ReceiveInfo()
+    {
+        while (true)
+        {
+            ReceiveMsgFromServer();
         }
     }
 }

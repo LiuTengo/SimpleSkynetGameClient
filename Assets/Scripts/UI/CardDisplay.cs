@@ -21,19 +21,19 @@ public class CardDisplay : MonoBehaviour
     public Color redColor = Color.red;
     public Color blackColor = Color.black;
 
-    private Card _card;
+    private Card_Legacy _card;
     private bool _isFaceUp = true;
 
-    public Card Card => _card;
+    public Card_Legacy Card => _card;
 
     // 设置卡牌数据并更新显示
     public void SetCard(string suit, string value)
     {
-        _card = new Card(suit, value);
+        _card = new Card_Legacy(suit, value);
         UpdateDisplay();
     }
 
-    public void SetCard(Card card)
+    public void SetCard(Card_Legacy card)
     {
         _card = card;
         UpdateDisplay();
@@ -61,18 +61,18 @@ public class CardDisplay : MonoBehaviour
         
         switch (_card.CardSuit)
         {
-            case Card.Suit.Hearts:
+            case Card_Legacy.Suit.Hearts:
                 suitSprite = heartsSprite;
                 suitColor = redColor;
                 break;
-            case Card.Suit.Diamonds:
+            case Card_Legacy.Suit.Diamonds:
                 suitSprite = diamondsSprite;
                 suitColor = redColor;
                 break;
-            case Card.Suit.Clubs:
+            case Card_Legacy.Suit.Clubs:
                 suitSprite = clubsSprite;
                 break;
-            case Card.Suit.Spades:
+            case Card_Legacy.Suit.Spades:
                 suitSprite = spadesSprite;
                 break;
         }
@@ -97,10 +97,10 @@ public class CardDisplay : MonoBehaviour
     {
         switch (_card.CardValue)
         {
-            case Card.Value.Ace: return "A";
-            case Card.Value.Jack: return "J";
-            case Card.Value.Queen: return "Q";
-            case Card.Value.King: return "K";
+            case Card_Legacy.Value.Ace: return "A";
+            case Card_Legacy.Value.Jack: return "J";
+            case Card_Legacy.Value.Queen: return "Q";
+            case Card_Legacy.Value.King: return "K";
             default: return ((int)_card.CardValue).ToString();
         }
     }

@@ -11,8 +11,8 @@ public class GameStateManager : MonoBehaviour
     public int PlayerId { get; private set; }
     public int Coins { get; private set; }
     public int CurrentBet { get; private set; }
-    public List<Card> PlayerHand { get; } = new();
-    public List<Card> OpponentHand { get; } = new();
+    public List<Card_Legacy> PlayerHand { get; } = new();
+    public List<Card_Legacy> OpponentHand { get; } = new();
     
     public UnityEvent<int> OnCoinsUpdated = new();
     public UnityEvent<int> OnBetUpdated = new();
@@ -69,7 +69,7 @@ public class GameStateManager : MonoBehaviour
                     PlayerHand.Clear();
                     for (int i = 4; i < data.Length; i += 2)
                     {
-                        PlayerHand.Add(new Card(data[i], data[i+1]));
+                        PlayerHand.Add(new Card_Legacy(data[i], data[i+1]));
                     }
                 }
                 break;

@@ -1,7 +1,7 @@
 using System;
 
 [Serializable]
-public class Card
+public class Card_Legacy
 {
     public enum Suit
     {
@@ -35,7 +35,7 @@ public class Card
     public string SuitString => CardSuit.ToString().ToLower();
     public string ValueString => CardValue.ToString().ToLower();
 
-    public Card(string suit, string value)
+    public Card_Legacy(string suit, string value)
     {
         if (!Enum.TryParse(suit, true, out Suit parsedSuit))
         {
@@ -51,7 +51,7 @@ public class Card
         CardValue = parsedValue;
     }
 
-    public Card(Suit suit, Value value)
+    public Card_Legacy(Suit suit, Value value)
     {
         CardSuit = suit;
         CardValue = value;

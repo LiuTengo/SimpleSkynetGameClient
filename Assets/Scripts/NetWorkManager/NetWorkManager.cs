@@ -13,9 +13,16 @@ using UnityEngine.Events;
 
 namespace CardNetWork
 {
+    public enum ServerRunResult
+    {
+        Success = 0,
+        Failed = 1,
+    }
+    
     public class ServerMessageEventArgs :EventArgs{
         public string Cmd { get; set; }        // 比如 login
-        public string Code { get; set; }       // 比如 0 表示成功
+        
+        public ServerRunResult RunResult { get; set; }       // 比如 0 表示成功
         public string Parameters { get; set; } // 比如 “登录成功”
         public string Raw { get; set; }        // 原始消息
     }
@@ -37,6 +44,7 @@ namespace CardNetWork
         private ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
         
         #region Attribute
+        public string PlayerName => playerName;
         public Socket Socket => socket;
         public string IP => ipAddress;
         public int Port => serverPort;
@@ -73,26 +81,24 @@ namespace CardNetWork
         
         private void Update()
         {
-            while (isListening)
+            while (mainThreadActions.TryDequeue(out Action action))
             {
-                try
+                //mainThreadActions.TryDequeue(out Action action);
+                if (action != null)
                 {
-                    string msg = ReceiveMsgFromServer(); // 注意处理异常
-                    if (!string.IsNullOrEmpty(msg))
-                    {
-                        mainThreadActions.Enqueue(() => EncodingMsgFromServer(msg));
-                    }
+                    action?.Invoke();
                 }
-                catch (SocketException ex)
-                {
-                    Debug.LogError("Socket 异常: " + ex.Message);
-                    isListening = false;
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError("接收线程异常: " + e.Message);
-                    isListening = false;
-                }
+                
+                //catch (SocketException ex)
+                //{
+                //    Debug.LogError("Socket 异常: " + ex.Message);
+                //    isListening = false;
+                //}
+                //catch (Exception e)
+                //{
+                //    Debug.LogError("接收线程异常: " + e.Message);
+                //    isListening = false;
+                //}
             }
         }
 
@@ -180,12 +186,12 @@ namespace CardNetWork
                 var args = new ServerMessageEventArgs
                 {
                     Cmd = splitM[0],
-                    Code = splitM[1],
+                    RunResult = (ServerRunResult)int.Parse(splitM[1]),
                     Parameters = string.Join(",", splitM, 2, splitM.Length - 2),
                     Raw = m
                 };
 
-                string key = args.Cmd + args.Code;
+                string key = args.Cmd;
                 if (cmdEvents.TryGetValue(key, out var handler))
                 {
                     handler?.Invoke(args);
@@ -211,7 +217,6 @@ namespace CardNetWork
             if(msgLength <= 0) return null;
             
             string msgFromServer  = Encoding.UTF8.GetString(msg, 0, msgLength);
-            Debug.Log(msgFromServer);
             return msgFromServer;
         }
 

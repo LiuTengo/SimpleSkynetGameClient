@@ -42,20 +42,14 @@ public class StartCanvas : MonoBehaviour
 
     private void Start()
     {
-        NetWorkManager.instance.RegisterCmd("login0", OnLoginSuccess);
-        NetWorkManager.instance.RegisterCmd("login1", OnLoginFailed);
-        
-        NetWorkManager.instance.RegisterCmd("enter0", OnEnterGameSuccess);
-        NetWorkManager.instance.RegisterCmd("enter1", OnEnterGameFailed);
+        NetWorkManager.instance.RegisterCmd("login", OnLogin);
+        NetWorkManager.instance.RegisterCmd("enter", OnEnterGame);
     }
 
     private void OnDisable()
     {
-        NetWorkManager.instance.UnRegisterCmd("login0",OnLoginSuccess);
-        NetWorkManager.instance.UnRegisterCmd("login1",OnLoginFailed);
-        
-        NetWorkManager.instance.UnRegisterCmd("enter0", OnEnterGameSuccess);
-        NetWorkManager.instance.UnRegisterCmd("enter1", OnEnterGameFailed);
+        NetWorkManager.instance.UnRegisterCmd("login",OnLogin);
+        NetWorkManager.instance.UnRegisterCmd("enter", OnEnterGame);
     }
 
     public void LoginGame()
@@ -67,23 +61,27 @@ public class StartCanvas : MonoBehaviour
         NetWorkManager.instance.SendMessageToServer("login", new [] {username,password});
     }
 
-    private void OnLoginSuccess(ServerMessageEventArgs args)
+    private void OnLogin(ServerMessageEventArgs args)
     {
-        NetWorkManager.instance.SendMessageToServer("enter");
-    }
-
-    private void OnLoginFailed(ServerMessageEventArgs args)
-    {
-        LoginFailPanel.SetActive(true);
-    }
-    
-    private void OnEnterGameSuccess(ServerMessageEventArgs args)
-    {
-        SceneManager.LoadScene("GameLoby");
+        if (args.RunResult == ServerRunResult.Success)
+        {
+            NetWorkManager.instance.SendMessageToServer("enter");
+        }
+        else
+        {
+            LoginFailPanel.SetActive(true);
+        }
     }
     
-    private void OnEnterGameFailed(ServerMessageEventArgs args)
+    private void OnEnterGame(ServerMessageEventArgs args)
     {
-        Debug.LogError("Enter Game Failed");
+        if (args.RunResult == ServerRunResult.Success)
+        {
+            SceneManager.LoadScene("GameLoby");
+        }
+        else
+        {
+            Debug.LogError("Enter Game Failed");
+        }
     }
 }

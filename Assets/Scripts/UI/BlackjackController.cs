@@ -54,6 +54,20 @@ public class BlackjackController : SingletonMono<BlackjackController>
         }
     }
 
+    #region 玩家状态ui组件
+
+    public Text playerNameText;
+    public Text playerTotalCoinText;
+    public Text playerScoreText;
+    //
+    public Text opponentNameText;
+    public Text opponentTotalCoinText;
+    public Text opponentScoreText;
+    //
+    public Text resultText;
+    
+    #endregion
+
     // [Header("UI组件")]
     public Button hitButton;
     public Button standButton;
@@ -73,6 +87,7 @@ public class BlackjackController : SingletonMono<BlackjackController>
     public Action<string> OnGameHasWinnerEvent;
     public Action OnBetTooMuchEvent;
     public Action OnGameHasNoWinnerEvent;
+    public Action OnGameResultedEvent;
     public Action OnGameRestartSuccessEvent;
     public Action OnGameRestartFailEvent;
     public PlayerInfo GetPlayerInfo => playerInfo;
@@ -171,7 +186,7 @@ public class BlackjackController : SingletonMono<BlackjackController>
         if (targetPlayerName != playerInfo.playerName)
         {
             Debug.Log($"received card: {args.Raw}");
-            var card = CardFactory.instance.InstantiateCard((CardSuit)suit,value,opponentHandArea);
+            var card = CardFactory.instance.InstantiateCard((CardSuit)suit,value,opponentHandArea,true);
             opponentInfo.playerHandCards.Add(card);
         }
         else
@@ -187,15 +202,22 @@ public class BlackjackController : SingletonMono<BlackjackController>
         // 格式: ["result", 0, winner_id] 或 ["result", 1]（平局）
         if (args.RunResult == ServerRunResult.Success)
         {
-            //gameStatusText.text = (winnerId == playerInfo.playerName) ? "你赢了!" : "对手赢了!";
             string winnerId = parameters[0];
+            resultText.text = (winnerId == playerInfo.playerName) ? "你赢了!" : "对手赢了!";
             OnGameHasWinnerEvent?.Invoke(winnerId);
         }
         else
         {
-            //gameStatusText.text = "平局!";
+            resultText.text = "平局!";
             OnGameHasNoWinnerEvent?.Invoke();
         }
+        
+        OnGameResultedEvent?.Invoke();
+        
+        // 先放这了
+        TurnOverCards();
+        StartCoroutine(ShowResult());
+
         //TODO: do something else
         //currentState = PlayerState.Preparing;
         //restartButton.gameObject.SetActive(true);
@@ -243,6 +265,22 @@ public class BlackjackController : SingletonMono<BlackjackController>
                     playerInfo.ClearHandCards();
                 }
             }
+            
+            //// 状态ui
+            if (targetPlayerName != playerInfo.playerName)
+            {
+                opponentNameText.text = "昵称：" + opponentInfo.playerName;
+                opponentTotalCoinText.text = "筹码：" + coin;
+                opponentScoreText.text = "得分：" + score;
+            }
+            else
+            {
+                playerNameText.text = "昵称：" + playerInfo.playerName;
+                opponentTotalCoinText.text = "筹码：" + coin;
+                opponentScoreText.text = "得分：" + score;
+            }
+            ////
+
         }
         else
         {
@@ -303,4 +341,19 @@ public class BlackjackController : SingletonMono<BlackjackController>
     //     //standButton.interactable = (currentState == PlayerState.Playing);
     //     //restartButton.interactable = (currentState == PlayerState.Preparing);
     // }
+
+    private void TurnOverCards()
+    {
+        foreach (var card in opponentInfo.playerHandCards)
+        {
+            card.GetComponent<Card.Card>().FrontSprite.enabled = true;
+        }
+    }
+
+    private IEnumerator ShowResult()
+    {
+        resultText.enabled = true;
+        yield return new WaitForSeconds(1f);
+        resultText.enabled = false;
+    }
 }

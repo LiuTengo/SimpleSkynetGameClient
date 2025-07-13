@@ -6,6 +6,7 @@ using CardNetWork;
 using General;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -64,6 +65,7 @@ public class BlackjackController : SingletonMono<BlackjackController>
     public Text opponentTotalCoinText;
     public Text opponentScoreText;
     //
+    public GameObject resultPanel;
     public Text resultText;
     
     #endregion
@@ -72,10 +74,12 @@ public class BlackjackController : SingletonMono<BlackjackController>
     public Button hitButton;
     public Button standButton;
     public Button startButton;
-    // public Button leaveButton;
+    public Button restartButton;
     public Button betButton;
+    public Button leaveButton;
     // public TMP_InputField betInput;
     // public TMP_Text gameStatusText;
+    
     public Action OnGameStartSuccessEvent;
     public Action OnGameStartFailEvent;
     public Action<int> OnBetSuccessEvent;
@@ -108,17 +112,17 @@ public class BlackjackController : SingletonMono<BlackjackController>
     private void Start()
     {
         playerInfo = new PlayerInfo(NetWorkManager.instance.PlayerName);
-        opponentInfo = new PlayerInfo("");
         // 注册网络事件
         NetWorkManager.instance.RegisterCmd("start_msg", OnGameStart);
         NetWorkManager.instance.RegisterCmd("bet", OnPlayerBet);
         NetWorkManager.instance.RegisterCmd("hit", OnPlayerHit);
+        NetWorkManager.instance.RegisterCmd("player_enter", OnPlayerEnter);
         NetWorkManager.instance.RegisterCmd("send_card_to_player", OnReceiveCard);
         NetWorkManager.instance.RegisterCmd("update_player_info", OnUpdatePlayerInfo);
         NetWorkManager.instance.RegisterCmd("player_stand", OnPlayerStand);
         NetWorkManager.instance.RegisterCmd("result", OnGameResult);
         NetWorkManager.instance.RegisterCmd("game_restart", OnGameRestart);
-        NetWorkManager.instance.RegisterCmd("result", OnGameResult);
+        NetWorkManager.instance.RegisterCmd("leave", OnPlayerLeave);
         
         NetWorkManager.instance.SendMessageToServer("get_player_info");
         
@@ -127,8 +131,44 @@ public class BlackjackController : SingletonMono<BlackjackController>
         standButton.onClick.AddListener(Stand);
         betButton.onClick.AddListener(()=>PlaceBet(20));
         startButton.onClick.AddListener(StartGame);
+        restartButton.onClick.AddListener(RestartGame);
+        leaveButton.onClick.AddListener(LeaveGame);
         //leaveButton.onClick.AddListener(() => NetWorkManager.instance.SendMessageToServer("leave"));
         //// 按钮事件
+    }
+
+    private void OnPlayerLeave(ServerMessageEventArgs args)
+    {
+        if (args.RunResult == ServerRunResult.Success)
+        {
+            string[] parameters = args.Parameters.Split(',');
+            string playerid = (parameters[0]);
+            if (playerid == playerInfo.playerName)
+            {
+                SceneManager.LoadScene("GameLoby");
+            }
+        }
+        else
+        {
+            Debug.Log($"Player enter failed");
+        }
+    }
+
+    private void OnPlayerEnter(ServerMessageEventArgs args)
+    {
+        if (args.RunResult == ServerRunResult.Success)
+        {
+            string[] parameters = args.Parameters.Split(',');
+            string playerid = (parameters[0]);
+            if (playerid != playerInfo.playerName)
+            {
+                opponentInfo = new PlayerInfo(playerid);
+            }
+        }
+        else
+        {
+            Debug.Log($"Player enter failed");
+        }
     }
 
     private void OnPlayerHit(ServerMessageEventArgs args)
@@ -203,11 +243,13 @@ public class BlackjackController : SingletonMono<BlackjackController>
         if (args.RunResult == ServerRunResult.Success)
         {
             string winnerId = parameters[0];
+            resultPanel.SetActive(true);
             resultText.text = (winnerId == playerInfo.playerName) ? "你赢了!" : "对手赢了!";
             OnGameHasWinnerEvent?.Invoke(winnerId);
         }
         else
         {
+            resultPanel.SetActive(true);
             resultText.text = "平局!";
             OnGameHasNoWinnerEvent?.Invoke();
         }
@@ -246,22 +288,25 @@ public class BlackjackController : SingletonMono<BlackjackController>
             string[] parameters = args.Parameters.Split(',');
             string targetPlayerName = parameters[0];
             int coin = int.Parse(parameters[1]);
-            int score = int.Parse(parameters[2]);
+            int bet = int.Parse(parameters[2]);
             string handCards = parameters[3];
             
-            Debug.Log($"OnUpdatePlayerInfo: {targetPlayerName}, {coin}, {score}, {handCards}");
+            Debug.Log($"OnUpdatePlayerInfo: {targetPlayerName}, {coin}, {bet}, {handCards}");
             
             if (handCards == "empty")
             {
                 if (targetPlayerName != playerInfo.playerName)
                 {
-                    opponentInfo.playerName = targetPlayerName;
-                    opponentInfo.UpdatePlayerInfo(score,0,coin);
+                    if (opponentInfo.playerName == string.Empty)
+                    {
+                        opponentInfo = new PlayerInfo(playerInfo.playerName);
+                    }
+                    opponentInfo.UpdatePlayerInfo(bet,0,coin);
                     opponentInfo.ClearHandCards();
                 }
                 else
                 {
-                    playerInfo.UpdatePlayerInfo(score,0,coin);
+                    playerInfo.UpdatePlayerInfo(bet,0,coin);
                     playerInfo.ClearHandCards();
                 }
             }
@@ -271,13 +316,13 @@ public class BlackjackController : SingletonMono<BlackjackController>
             {
                 opponentNameText.text = "昵称：" + opponentInfo.playerName;
                 opponentTotalCoinText.text = "筹码：" + coin;
-                opponentScoreText.text = "得分：" + score;
+                opponentScoreText.text = "当前下注：" + bet;
             }
             else
             {
                 playerNameText.text = "昵称：" + playerInfo.playerName;
-                opponentTotalCoinText.text = "筹码：" + coin;
-                opponentScoreText.text = "得分：" + score;
+                playerTotalCoinText.text = "筹码：" + coin;
+                playerScoreText.text = "当前下注：" + bet;
             }
             ////
 
@@ -319,6 +364,18 @@ public class BlackjackController : SingletonMono<BlackjackController>
         NetWorkManager.instance.SendMessageToServer("hit");
     }
 
+    private void RestartGame()
+    {
+        resultPanel.SetActive(false);
+        NetWorkManager.instance.SendMessageToServer("restart_game");
+    }
+    
+    private void LeaveGame()
+    {
+        resultPanel.SetActive(false);
+        NetWorkManager.instance.SendMessageToServer("leave");
+    }
+    
     public void StartGame()
     {
         NetWorkManager.instance.SendMessageToServer("start_sendcard");
@@ -354,6 +411,6 @@ public class BlackjackController : SingletonMono<BlackjackController>
     {
         resultText.enabled = true;
         yield return new WaitForSeconds(1f);
-        resultText.enabled = false;
+        //resultText.enabled = false;
     }
 }

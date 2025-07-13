@@ -36,6 +36,7 @@ namespace CardNetWork
         private int serverPort;
         private string playerName;
         private string playerPassword;
+        private string opponentName;
         private IPEndPoint endPoint;
         private Dictionary<string, ServerMessageHandler> cmdEvents= new Dictionary<string, ServerMessageHandler>();
 
@@ -45,6 +46,7 @@ namespace CardNetWork
         
         #region Attribute
         public string PlayerName => playerName;
+        public string OpponentName => opponentName;
         public Socket Socket => socket;
         public string IP => ipAddress;
         public int Port => serverPort;
@@ -57,28 +59,6 @@ namespace CardNetWork
             DontDestroyOnLoad(this.gameObject);
         }
 
-        private void Start()
-        {
-            //EnableThread();
-            
-            //cmdEvents.Add("login0", new UnityEvent());
-            //cmdEvents.Add("login1", new UnityEvent());
-            //cmdEvents.Add("bet0", new UnityEvent()); //下注成功
-            //cmdEvents.Add("bet1", new UnityEvent()); //下注失败
-            //cmdEvents.Add("start_sendcard0", new UnityEvent()); //开始发牌
-            //cmdEvents.Add("start_sendcard1", new UnityEvent()); //发牌失败
-            //cmdEvents.Add("hit0", new UnityEvent()); //抽牌
-            ////cmdEvents.Add("hit0", new UnityEvent());
-            //cmdEvents.Add("stand", new UnityEvent());
-            //cmdEvents.Add("restart_game", new UnityEvent());
-            //cmdEvents.Add("leave", new UnityEvent());
-
-            //// 广播消息
-            //cmdEvents.Add("update_player_info", new UnityEvent());
-            //cmdEvents.Add("result", new UnityEvent());
-            //cmdEvents.Add("game_restart", new UnityEvent());
-        }
-        
         private void Update()
         {
             while (mainThreadActions.TryDequeue(out Action action))

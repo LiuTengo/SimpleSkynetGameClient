@@ -117,6 +117,7 @@ public class BlackjackController : SingletonMono<BlackjackController>
         NetWorkManager.instance.RegisterCmd("bet", OnPlayerBet);
         NetWorkManager.instance.RegisterCmd("hit", OnPlayerHit);
         NetWorkManager.instance.RegisterCmd("player_enter", OnPlayerEnter);
+        NetWorkManager.instance.RegisterCmd("player_in_scene", UpdateOpponentInfo);
         NetWorkManager.instance.RegisterCmd("send_card_to_player", OnReceiveCard);
         NetWorkManager.instance.RegisterCmd("update_player_info", OnUpdatePlayerInfo);
         NetWorkManager.instance.RegisterCmd("player_stand", OnPlayerStand);
@@ -135,6 +136,22 @@ public class BlackjackController : SingletonMono<BlackjackController>
         leaveButton.onClick.AddListener(LeaveGame);
         //leaveButton.onClick.AddListener(() => NetWorkManager.instance.SendMessageToServer("leave"));
         //// 按钮事件
+    }
+
+    private void UpdateOpponentInfo(ServerMessageEventArgs args)
+    {
+        Debug.Log($"Update Opponent Player Info");
+        if (args.RunResult == ServerRunResult.Success)
+        {
+            string[] parameters = args.Parameters.Split(',');
+            string playerid = (parameters[0]);
+            Debug.Log($"Update Opponent Player Info Success: {playerid}");
+            opponentInfo = new PlayerInfo(playerid);
+        }
+        else
+        {
+            Debug.Log($"Player enter failed");
+        }
     }
 
     private void OnPlayerLeave(ServerMessageEventArgs args)
@@ -225,6 +242,7 @@ public class BlackjackController : SingletonMono<BlackjackController>
 
         if (targetPlayerName != playerInfo.playerName)
         {
+            //FIXME：抽完卡牌即出结果，还没有实例化就销毁了
             Debug.Log($"received card: {args.Raw}");
             var card = CardFactory.instance.InstantiateCard((CardSuit)suit,value,opponentHandArea,true);
             opponentInfo.playerHandCards.Add(card);
